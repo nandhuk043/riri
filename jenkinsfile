@@ -1,28 +1,36 @@
 pipeline {
     agent any
-    environment {
-        DOCKER_IMAGE = 'nginx:latest'
-        DOCKER_COMPOSE_FILE = 'docker-compose.yml'
-    }
+
     stages {
-        stage('Checkout') {
+        stage('Checkout SCM') {
             steps {
                 checkout scm
             }
         }
+
         stage('Build & Deploy') {
             steps {
                 script {
-                    // Build and start containers using Docker Compose
-                    sh 'docker-compose -f $DOCKER_COMPOSE_FILE up -d --build'
+                    // Stop and remove any existing containers with the same name
+                    sh '''
+                    docker ps -q -f name=mysql_db | xargs -r docker rm -f
+                    docker ps -q -f name=webserver | xargs -r docker rm -f
+                    docker-compose -f docker-compose.yml up -d --build
+                    '''
                 }
             }
         }
-    }
-    post {
-        always {
-            echo 'Cleaning up...'
-            sh 'docker-compose down'
+
+        stage('Post Actions') {
+            steps {
+                echo 'Cleaning up...'
+                script {
+                    // Stop and remove containers and networks after the deployment
+                    sh '''
+                    docker-compose down
+                    '''
+                }
+            }
         }
     }
 }
