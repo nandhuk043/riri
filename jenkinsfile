@@ -1,0 +1,28 @@
+pipeline {
+    agent any
+    environment {
+        DOCKER_IMAGE = 'nginx:latest'
+        DOCKER_COMPOSE_FILE = 'docker-compose.yml'
+    }
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+        stage('Build & Deploy') {
+            steps {
+                script {
+                    // Build and start containers using Docker Compose
+                    sh 'docker-compose -f $DOCKER_COMPOSE_FILE up -d --build'
+                }
+            }
+        }
+    }
+    post {
+        always {
+            echo 'Cleaning up...'
+            sh 'docker-compose down'
+        }
+    }
+}
